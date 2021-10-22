@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>CodePen - Sweet Memory Game - HTML5, JS and SCSS</title>
+  <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css'>
+<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Coda'>
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/sweetalert2/3.0.3/sweetalert2.min.css'>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.css'>
+<style>
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  background: #FF9090;
+  overflow: hidden;
+  font-family: "Coda", cursive;
+}
+
+.deck {
+  width: 345px;
+  margin: 0 auto;
+  background: #FFFA62;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 14px 14px 0 0 #000000;
+}
+.deck .card {
+  height: 75px;
+  width: 75px;
+  background: #FFCF7F;
+  display: inline-block;
+  margin: 0 15px 15px 0;
+  line-height: 140px;
+  font-size: 0;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 8px;
+  vertical-align: top;
+  cursor: pointer;
+  transform: rotateY(180deg);
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+  font-family: FontAwesome;
+  line-height: 75px;
+}
+.deck .card:nth-child(4n) {
+  margin: 0 0 15px 0;
+}
+.deck .card:nth-child(n+13) {
+  margin: 0 15px 0 0;
+}
+.deck .card:nth-child(n+13):nth-child(4n) {
+  margin: 0;
+}
+.deck .card.open {
+  transform: rotateY(0);
+  background: #89C4FF;
+  cursor: default;
+}
+.deck .card.show {
+  font-size: 33px;
+}
+.deck .card.match {
+  transform: rotateY(0);
+  cursor: default;
+  background: #9BCB3C;
+  font-size: 33px;
+}
+.deck .card.notmatch {
+  background: #EE0E51;
+}
+
+#score-panel {
+  text-align: left;
+  width: 345px;
+  margin-bottom: 10px;
+}
+#score-panel .stars {
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  margin: 0 5px 0 0;
+}
+#score-panel .stars li {
+  list-style: none;
+  display: inline-block;
+}
+#score-panel .restart {
+  float: right;
+  cursor: pointer;
+}
+
+*::-moz-selection {
+  background: transparent;
+}
+
+*::selection {
+  background: transparent;
+}
+
+.swal2-overlay {
+  background-color: white;
+}
+</style>
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<div id="score-panel">
+	<ul class="stars">
+		<li><i class="fa fa-star"></i></li>
+		<li><i class="fa fa-star"></i></li>
+		<li><i class="fa fa-star"></i></li>
+	</ul>
+	<span class="moves">0</span> Moves
+	<div class="restart">
+		<i class="fa fa-repeat"></i>
+	</div>
+</div>
+<ul class="deck"></ul>
+<!-- partial -->
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.2/jquery.min.js'></script>
+<script src='https://cdn.jsdelivr.net/sweetalert2/3.0.3/sweetalert2.min.js'></script>
+<script>
+var symbols = ['bicycle', 'bicycle', 'leaf', 'leaf', 'cube', 'cube', 'anchor', 'anchor', 'paper-plane-o', 'paper-plane-o', 'bolt', 'bolt', 'bomb', 'bomb', 'diamond', 'diamond'],
+		opened = [],
+		match = 0,
+		moves = 0,
+		$deck = $('.deck'),
+		$scorePanel = $('#score-panel'),
+		$moveNum = $scorePanel.find('.moves'),
+		$ratingStars = $scorePanel.find('i'),
+		$restart = $scorePanel.find('.restart'),
+		delay = 800,
+		gameCardsQTY = symbols.length / 2,
+		rank3stars = gameCardsQTY + 2,
+		rank2stars = gameCardsQTY + 6,
+		rank1stars = gameCardsQTY + 10;
+
+// Shuffle function From http://stackoverflow.com/a/2450976
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+	
+  while (0 !== currentIndex) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
+// Initial Game
+function initGame() {
+	var cards = shuffle(symbols);
+  $deck.empty();
+  match = 0;
+  moves = 0;
+  $moveNum.html(moves);
+  $ratingStars.removeClass('fa-star-o').addClass('fa-star');
+	for (var i = 0; i < cards.length; i++) {
+		$deck.append($('<li class="card"><i class="fa fa-' + cards[i] + '"></i></li>'))
+	}
+};
+
+// Set Rating and final Score
+function setRating(moves) {
+	var rating = 3;
+	if (moves > rank3stars && moves < rank2stars) {
+		$ratingStars.eq(2).removeClass('fa-star').addClass('fa-star-o');
+		rating = 2;
+	} else if (moves > rank2stars && moves < rank1stars) {
+		$ratingStars.eq(1).removeClass('fa-star').addClass('fa-star-o');
+		rating = 1;
+	} else if (moves > rank1stars) {
+		$ratingStars.eq(0).removeClass('fa-star').addClass('fa-star-o');
+		rating = 0;
+	}	
+	return { score: rating };
+};
+
+// End Game
+function endGame(moves, score) {
+	swal({
+		allowEscapeKey: false,
+		allowOutsideClick: false,
+		title: 'Congratulations! You Won!',
+		text: 'With ' + moves + ' Moves and ' + score + ' Stars.\nBoom Shaka Lak!',
+		type: 'success',
+		confirmButtonColor: '#9BCB3C',
+		confirmButtonText: 'Play again!'
+	}).then(function(isConfirm) {
+		if (isConfirm) {
+			initGame();
+		}
+	})
+}
+
+// Restart Game
+$restart.on('click', function() {
+  swal({
+    allowEscapeKey: false,
+    allowOutsideClick: false,
+    title: 'Are you sure?',
+    text: "Your progress will be Lost!",
+    type: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#9BCB3C',
+    cancelButtonColor: '#EE0E51',
+    confirmButtonText: 'Yes, Restart Game!'
+  }).then(function(isConfirm) {
+    if (isConfirm) {
+      initGame();
+    }
+  })
+});
+
+// Card flip
+$deck.on('click', '.card:not(".match, .open")', function() {
+	if($('.show').length > 1) { return true; }
+	
+	var $this = $(this),
+			card = $this.context.innerHTML;
+  $this.addClass('open show');
+	opened.push(card);
+
+	// Compare with opened card
+  if (opened.length > 1) {
+    if (card === opened[0]) {
+      $deck.find('.open').addClass('match animated infinite rubberBand');
+      setTimeout(function() {
+        $deck.find('.match').removeClass('open show animated infinite rubberBand');
+      }, delay);
+      match++;
+    } else {
+      $deck.find('.open').addClass('notmatch animated infinite wobble');
+			setTimeout(function() {
+				$deck.find('.open').removeClass('animated infinite wobble');
+			}, delay / 1.5);
+      setTimeout(function() {
+        $deck.find('.open').removeClass('open show notmatch animated infinite wobble');
+      }, delay);
+    }
+    opened = [];
+		moves++;
+		setRating(moves);
+		$moveNum.html(moves);
+  }
+	
+	// End Game if match all cards
+	if (gameCardsQTY === match) {
+		setRating(moves);
+		var score = setRating(moves).score;
+		setTimeout(function() {
+			endGame(moves, score);
+		}, 500);
+  }
+});
+
+initGame();
+</script>
+
+</body>
+</html>
