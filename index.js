@@ -31,21 +31,38 @@ io.on("connection", (socket) => {
     console.log("Disconnect\n---------------", players);
   });
 
-  socket.on("player-movement", (data) => {
-    console.log(data);
-    players[data.socId].x = data.x;
-    players[data.socId].y = data.y;
-    socket.broadcast.emit("move-player", data);
-  });
+  /*
+          | 1 |
+      -----------
+      | 4 | 3 | 2 |
+  */
 
   socket.on("player-key-down", (data) => {
-    players[data.socId].keyDown = data.key;
-    console.log("Key Down", players[data.socId].keyDown);
-    socket.broadcast.emit("move-player", data);
+    const movementData = {};
+    movementData.socId = data.socId;
+    if (!players[data.socId].keyDown) {
+      players[data.socId].keyDown = {
+        vertical: null,
+        horizontal: null,
+      };
+    }
+    if (data.key === 1 || data.key === 3) {
+      movementData["vertical"] = data.key;
+      players[data.socId].keyDown["vertical"] = data.key;
+      console.log("V Key Down", players[data.socId].keyDown);
+    }
+    if (data.key === 2 || data.key === 4) {
+      movementData["horizontal"] = data.key;
+      players[data.socId].keyDown["horizontal"] = data.key;
+      console.log("H Key Down", players[data.socId].keyDown);
+    }
+    socket.broadcast.emit("move-player", movementData);
   });
 
   socket.on("player-key-up", (data) => {
-    players[data.socId].keyDown = null;
+    if (players[data.socId].keyDown) {
+      players[data.socId].keyDown[data.movement] = null;
+    }
     players[data.socId].x = data.x;
     players[data.socId].y = data.y;
     console.log("Key Up", players[data.socId].keyDown);
