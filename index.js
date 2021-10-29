@@ -16,11 +16,8 @@ const io = require("socket.io")(server, {
 const players = {};
 
 io.on("connection", (socket) => {
-  console.log(socket.id);
-
   socket.on("init", (playerInfo, callback) => {
     players[playerInfo.socId] = playerInfo;
-    console.log("\nInit\n---------------", players);
     callback(players);
     socket.broadcast.emit("new-player", playerInfo);
   });
@@ -28,7 +25,6 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     delete players[socket.id];
     socket.broadcast.emit("remove-player", socket.id);
-    console.log("Disconnect\n---------------", players);
   });
 
   /*
@@ -49,12 +45,10 @@ io.on("connection", (socket) => {
     if (data.key === 1 || data.key === 3) {
       movementData["vertical"] = data.key;
       players[data.socId].keyDown["vertical"] = data.key;
-      console.log("V Key Down", players[data.socId].keyDown);
     }
     if (data.key === 2 || data.key === 4) {
       movementData["horizontal"] = data.key;
       players[data.socId].keyDown["horizontal"] = data.key;
-      console.log("H Key Down", players[data.socId].keyDown);
     }
     socket.broadcast.emit("move-player", movementData);
   });
