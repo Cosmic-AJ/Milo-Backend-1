@@ -2,6 +2,8 @@ const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const http = require("http");
+const { nanoid } = require("nanoid");
+const checkForAgreements = require("./utils/requestHandler");
 const PORT = process.env.PORT || 5000;
 
 app = express();
@@ -14,6 +16,8 @@ const io = require("socket.io")(server, {
   },
 });
 const players = {};
+const requests = [];
+const rooms = {};
 
 io.on("connection", (socket) => {
   socket.on("init", (playerInfo, callback) => {
@@ -32,7 +36,6 @@ io.on("connection", (socket) => {
       -----------
       | 4 | 3 | 2 |
   */
-
   socket.on("player-key-down", (data) => {
     const movementData = {};
     movementData.socId = data.socId;
@@ -59,10 +62,57 @@ io.on("connection", (socket) => {
     }
     players[data.socId].x = data.x;
     players[data.socId].y = data.y;
-    console.log("Key Up", players[data.socId].keyDown);
     socket.broadcast.emit("stop-player", data);
   });
+
+  //Data Communication
+  /*
+    data {
+      type: string,
+      fromSocId: string,
+      toSocId: string,
+    }
+  */
+  socket.on("init-chat", (data) => {
+    if (data.type === "cancel") {
+      io.to(data.toSocId).emit("cancel-chat");
+    }
+    const [type, index] = checkForAgreements(requests, data);
+    if (!type) {
+      requests.push(data);
+    } else {
+      const room = nanoid();
+      //Add players to the private room
+      const player1 = io.sockets.sockets.get(data.fromSocId);
+      const player2 = io.sockets.sockets.get(data.toSocId);
+      player1.join(room);
+      player2.join(room);
+      rooms[room] = {
+        clients: [player1.id, player2.id],
+      };
+      io.to(room).emit("start-chat", {
+        type: type,
+        roomName: room,
+        participants: [player1.id, player2.id],
+      });
+      //Create a room and send a data packet to the clients in the room
+      requests.splice(index, 1);
+    }
+  });
+
+  socket.on("cancel-request", (data) => {
+    const index = requests.findIndex(
+      (request) => request.fromSocId === data.fromSocId
+    );
+    requests.splice(index, 1);
+  });
+
+  socket.on("new-message", (data) => {
+    socket.broadcast.to(data.roomName).emit("add-message", data.message);
+  });
 });
+
+//Server code
 app.use(cors());
 app.use("/maps", express.static(path.resolve("maps")));
 app.use("/characters", express.static(path.resolve("characters")));
