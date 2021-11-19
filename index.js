@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const io = require("socket.io")(server, {
   serveClient: false,
   cors: {
-    origin: "http://localhost:3000",
+    origin: "http://192.168.31.132:3000",
     methods: ["GET", "POST"],
   },
 });
@@ -20,6 +20,7 @@ const requests = [];
 const rooms = {};
 
 io.on("connection", (socket) => {
+  socket.join("abc");
   socket.on("init", (playerInfo, callback) => {
     players[playerInfo.socId] = playerInfo;
     callback(players);
@@ -107,8 +108,17 @@ io.on("connection", (socket) => {
     requests.splice(index, 1);
   });
 
+  //For chat messages
   socket.on("new-message", (data) => {
     socket.broadcast.to(data.roomName).emit("add-message", data.message);
+  });
+
+  socket.on("voice", (data) => {
+    console.log(data.roomName);
+    let newData = data.voice.split(";");
+    newData[0] = "data:audio/ogg;";
+    newData = newData[0] + newData[1];
+    socket.broadcast.to(data.roomName).emit("play-audio", newData);
   });
 });
 
