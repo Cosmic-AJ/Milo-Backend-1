@@ -94,7 +94,7 @@ io.on("connection", (socket) => {
       io.to(room).emit("start-chat", {
         type: type,
         roomName: room,
-        participants: [player1.id, player2.id],
+        participants: [players[player1.id], players[player2.id]],
       });
       //Create a room and send a data packet to the clients in the room
       requests.splice(index, 1);
@@ -113,8 +113,19 @@ io.on("connection", (socket) => {
     socket.broadcast.to(data.roomName).emit("add-message", data.message);
   });
 
+  socket.on("participant-mute", (roomName) => {
+    socket.broadcast.to(roomName).emit("participant-mute");
+  });
+
+  socket.on("participant-unmute", (roomName) => {
+    socket.broadcast.to(roomName).emit("participant-unmute");
+  });
+
+  socket.on("chat-exit", (roomName) => {
+    socket.broadcast.to(roomName).emit("chat-exit");
+  });
+
   socket.on("voice", (data) => {
-    console.log(data.roomName);
     let newData = data.voice.split(";");
     newData[0] = "data:audio/ogg;";
     newData = newData[0] + newData[1];
