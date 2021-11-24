@@ -183,6 +183,24 @@
           gamearea.context.fillStyle = "gray";
           gamearea.context.font = "25px Consolas";
           gamearea.context.fillText("GAME OVER!!!", 200, 250);
+          fetch("https://milo-back-end.herokuapp.com/game", {
+            method: "POST",
+            headers: {
+              Authorization: "JWT " + localStorage.getItem("JWT"),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              game: "dinosaurgame",
+              score: gamescore,
+            }),
+          })
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (data) {
+              console.log(JSON.stringify(data));
+            })
+            .catch(console.error);
         },
       };
     </script>
