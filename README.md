@@ -5,7 +5,7 @@ This is a Node JS server
 ```bash
 git clone https://github.com/Adithya31101/Milo-Backend.git
 npm install
-# *IMP* milo/client$ npm run build is necessary to run server, to serve frontend pages to the client devices.
+# *IMP* milo/client$ npm run build is necessary to run server, to serve frontend pages to the client device.
 npm start
 ```
 
